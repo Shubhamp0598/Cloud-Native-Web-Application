@@ -1,0 +1,58 @@
+# GitHub Actions Workflow to check the format of the Packer HCL file used to build AMI
+name: Pull Request Packer test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs: 
+  pull-request-ami-test:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        
+        - name: Setup Packer
+          uses: hashicorp/setup-packer@main
+          id: setup
+          with:
+            version: "latest"
+
+        - name: Check Packer version
+          run: packer version
+
+        - name: Go to file location
+          run: |
+            pwd
+            cd webapp
+            ls -la
+
+        - name: Packer init
+          run: |
+            cd webapp
+            packer init ./aws-debian.pkr.hcl
+            
+        - name: Check hcl format
+          run: |
+            cd webapp
+            packer version
+            output=$(packer fmt ./aws-debian.pkr.hcl)
+            if [ -n "$output" ]; then
+              echo "Packer file has been modified. Found issues with the formatting:"
+              echo "$output"
+              exit 1
+            fi
+
+        - name: Build webapp artifacts
+          run: |
+            cd webapp
+            rm -rf __pycache__
+            cd ..
+            zip -r webapp.zip webapp
+            mv webapp.zip webapp/
+    
+        - name: Validate packer file
+          run: |
+            cd webapp
+            packer validate -var "aws_region=${{ vars.AWS_REGION_PACKER }}" -var "group=${{ vars.GROUP_PACKER }}" -var "user=${{ vars.USER_PACKER }}" -var "source_ami=${{ vars.SOURCE_AMI_PACKER }}" -var "ssh_username=${{ vars.SSH_USERNAME_PACKER }}" -var "subnet_id=${{ vars.SUBNET_ID_PACKER }}" -var "ami_users=${{ vars.AMI_USERS_PACKER }}" -var "instance_type=${{ vars.INSTANCE_TYPE_PACKER }}" -var "volume_size=${{ vars.VOLUME_SIZE_PACKER }}" -var "volume_type=${{ vars.VOLUME_TYPE_PACKER }}" -var "delay_seconds=${{ vars.DELAY_SECONDS_PACKER }}" -var "device_name=${{ vars.DEVICE_NAME_PACKER }}" -var "max_attempts=${{ vars.MAX_ATTEMPTS_PACKER }}" ./aws-debian.pkr.hcl

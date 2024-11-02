@@ -1,0 +1,11 @@
+Flask
+numpy
+sqlalchemy
+sqlalchemy_utils
+sqlalchemy.orm
+flask_bcrypt
+flask_httpauth
+psycopg2-binary
+python-dotenv
+statsd
+boto3

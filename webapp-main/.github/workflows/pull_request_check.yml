@@ -1,0 +1,53 @@
+# Integration test to check integration between the webapp and database
+name: Pull Request Integration Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs: 
+  pull-request-integration-test:
+      runs-on: ubuntu-latest
+      services:
+        postgres:
+          image: postgres:14
+          # Set up postgres database locally on github runner for testing
+          env:
+            POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB: ${{ vars.POSTGRES_DB }}
+          ports:
+            - 5432:5432
+          options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v2
+
+        - name: Set up Python
+          uses: actions/setup-python@v2
+          with:
+            python-version: 3.11
+
+        - name: Install dependencies
+          run: |
+            pwd
+            cd webapp
+            ls -la
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+
+        - name: Move users.csv to /opt
+          run: |
+            cd webapp
+            mv users.csv /opt
+            ls -la /opt
+
+        - name: Run tests (PostgreSQL)
+          run: |
+            cd webapp
+            ls -la
+            export DATABASE_URL=${{ secrets.DATABASE_URL }}
+            export REGION=${{vars.REGION}}
+            python IntegrationTest.py
