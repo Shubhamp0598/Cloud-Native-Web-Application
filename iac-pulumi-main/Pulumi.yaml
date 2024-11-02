@@ -1,0 +1,4 @@
+name: iac-pulumi
+runtime:
+  name: python
+description: Creating AWS resources using Pulumi
